@@ -1,14 +1,21 @@
 package com.enterprise.music
 
+import android.content.Context
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class MainViewModel : ViewModel(){
+
+@HiltViewModel
+class MainViewModel @Inject constructor(@ApplicationContext val context: Context)
+    : ViewModel(){
 
     var durationOfFrameMilliSecond: Long = 20
     val audioFrame = mutableStateListOf<Float>()
@@ -24,7 +31,7 @@ class MainViewModel : ViewModel(){
 
             val audioFrameFlow =
                 AppAudioDataReader.readAudioFrame(rawID = R.raw.music,
-                    context = MusicVisualizerApplication.musicVisualizerApplicationContext,
+                    context = context,
                     durationOfFrameMilliSecond = durationOfFrameMilliSecond)
 
             audioFrameFlow.collect{ tempAudioFrame ->
