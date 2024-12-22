@@ -60,11 +60,9 @@ fun MusicApp() {
 
     val context = LocalContext.current
 
-    var inputAudioSignal = arrayListOf<Float>()
-
     var durationOfFrameMilliSecond: Long = 20
 
-    val audioSlice = remember{ mutableStateListOf<Float>() }
+    val audioFrame = remember{ mutableStateListOf<Float>() }
 
     LaunchedEffect(key1 = true) {
 
@@ -74,38 +72,26 @@ fun MusicApp() {
                 isProgressBarVisible.value = true
             }
 
-            val inputAudioData = AppAudioDataReader.readAudio(rawID = R.raw.music, context = context)
+            val audioFrameFlow = AppAudioDataReader.readAudioFrame(rawID = R.raw.music, context = context, durationOfFrameMilliSecond = durationOfFrameMilliSecond)
 
-            inputAudioSignal = inputAudioData.audioSignal
-
-            val numberOfElementsOfAudioPart: Int = (durationOfFrameMilliSecond * inputAudioData.sampleRate / 1000).toInt()
-
-            GlobalScope.launch(Dispatchers.Main){
-                isProgressBarVisible.value = false
-            }
-
-            var elementsSize = inputAudioSignal.size
-
-            var numberOfIteration = (elementsSize / numberOfElementsOfAudioPart).toInt() - 1
-
-            var startIndex = 0
-            var endIndex = numberOfElementsOfAudioPart - 1
-
-            for (i in 0..numberOfIteration) {
+            audioFrameFlow.collect{ tempAudioFrame ->
 
                 delay(durationOfFrameMilliSecond)
 
-                var tempAudioSlice = inputAudioSignal.slice(startIndex..endIndex)
-
-                startIndex = startIndex + numberOfElementsOfAudioPart
-                endIndex = endIndex + numberOfElementsOfAudioPart
-
                 GlobalScope.launch(Dispatchers.Main) {
-                    audioSlice.clear()
-                    audioSlice.addAll(tempAudioSlice)
+
+                    isProgressBarVisible.value = false
+
+                    audioFrame.clear()
+                    audioFrame.addAll(tempAudioFrame)
+
                 }
+
+
             }
+
         }
+
 
     }
 
@@ -161,8 +147,15 @@ fun MusicApp() {
 
                         try {
 
-                            maxAmplitudeValue = inputAudioSignal.max()
-                            minAmplittudeValue = inputAudioSignal.min()
+                            //When the max and min of the audio frame is used,
+                            //audio frame signal fills the borders of the graph
+                            //Also -1 and 1 can be used, see below
+                            maxAmplitudeValue = audioFrame.max()
+                            minAmplittudeValue = audioFrame.min()
+
+                            //Audio signal is normalized between -1 and 1
+                            //maxAmplitudeValue = 1f
+                            //minAmplittudeValue = -1f
 
                             val listOfAbsoluteVAlueOfMaxAndMin =
                                 arrayListOf(abs(maxAmplitudeValue), abs(minAmplittudeValue))
@@ -175,7 +168,7 @@ fun MusicApp() {
 
 
                         var tempInput = arrayListOf<Float>()
-                        tempInput.addAll(audioSlice)
+                        tempInput.addAll(audioFrame)
 
                         var yVAlues: ArrayList<Float> = getYVAlues(
                             maxOfAbsoluteValueOfAmplitudes = maxOfAbsoluteValueOfAmplitudes,
@@ -185,7 +178,7 @@ fun MusicApp() {
 
                         var xValues: ArrayList<Float> = getXVAlues(
                             canvasWidth = canvasWidth,
-                            elementsSize = audioSlice.size
+                            elementsSize = audioFrame.size
                         )
 
                         val strokeWidth = 5.dp.toPx()
