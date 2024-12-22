@@ -1,3 +1,7 @@
 <resources>
+
     <string name="app_name">Music</string>
+
+    <string name="main_activity_music_visualizer_title">Music Visualizer</string>
+
 </resources>
