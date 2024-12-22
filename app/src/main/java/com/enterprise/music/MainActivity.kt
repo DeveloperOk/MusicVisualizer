@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModelProvider
 import com.enterprise.music.ui.theme.MusicTheme
 import com.enterprise.music.ui.theme.Teal200
 import kotlinx.coroutines.Dispatchers
@@ -38,15 +39,20 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 class MainActivity : ComponentActivity() {
+
+    lateinit var mainViewModel: MainViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         enableEdgeToEdge()
 
+        mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
+
         setContent {
             MusicTheme {
 
-                MusicApp()
+                MusicApp(mainViewModel = mainViewModel)
 
             }
         }
@@ -54,47 +60,11 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MusicApp() {
+fun MusicApp(mainViewModel: MainViewModel) {
 
-    val isProgressBarVisible = rememberSaveable { mutableStateOf(false) }
+    val isProgressBarVisible = mainViewModel.isProgressBarVisible
 
-    val context = LocalContext.current
-
-    var durationOfFrameMilliSecond: Long = 20
-
-    val audioFrame = remember{ mutableStateListOf<Float>() }
-
-    LaunchedEffect(key1 = true) {
-
-        GlobalScope.launch(Dispatchers.IO) {
-
-            GlobalScope.launch(Dispatchers.Main){
-                isProgressBarVisible.value = true
-            }
-
-            val audioFrameFlow = AppAudioDataReader.readAudioFrame(rawID = R.raw.music, context = context, durationOfFrameMilliSecond = durationOfFrameMilliSecond)
-
-            audioFrameFlow.collect{ tempAudioFrame ->
-
-                delay(durationOfFrameMilliSecond)
-
-                GlobalScope.launch(Dispatchers.Main) {
-
-                    isProgressBarVisible.value = false
-
-                    audioFrame.clear()
-                    audioFrame.addAll(tempAudioFrame)
-
-                }
-
-
-            }
-
-        }
-
-
-    }
-
+    val audioFrame = mainViewModel.audioFrame
 
     Column(horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top,
